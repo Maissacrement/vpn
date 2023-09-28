@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  openvpn-server:
+    image: docker.io/alekslitvinenk/openvpn:latest
+    container_name: dockovpn
+    ports:
+      - "0.0.0.0:1194:1194/udp"
+      - 8080:8080
+    cap_add:
+      - NET_ADMIN
+    environment:
+      HOST_ADDR: 0.0.0.0
+      HOST_TUN_PORT: 1194
+    networks:
+      - vpn-app
+      - other-channel
+
+  openvpn-client-1:
+    build:
+      context: .
+    user: root
+    privileged: true
+    devices:
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - vpn-app
+
+  openvpn-client-2:
+    build:
+      context: .
+    user: root
+    privileged: true
+    devices:
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - other-channel
+
+networks:
+  vpn-app:
+    driver: bridge
+
+  other-channel:
+    driver: bridge
