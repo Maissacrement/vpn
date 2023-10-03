@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vpn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vpn
+  template:
+    metadata:
+      labels:
+        app: vpn
+    spec:
+      containers:
+
+      - name: dockovpn
+        image: docker.io/alekslitvinenk/openvpn:latest
+        ports:
+        - name: udp
+          containerPort: 1194
+        - name: web
+          containerPort: 8080
+        env:
+        - name: HOST_ADDR
+          value: private-vpn
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+
+      - name: vpn-client-1
+        image: maissacrement/vpn-client
+        command: ["/app/entrypoint.sh", "private-vpn"]
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+        volumeMounts:
+        - mountPath: /dev/net
+          name: dev-net
+      volumes:
+      - name: dev-net
+        hostPath:
+          path: /dev/net
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: private-vpn
+spec:
+  type: ClusterIP
+  selector:
+    app: vpn
+  ports:
+  - name: udp
+    protocol: UDP
+    port: 1194
+    targetPort: 1194
+  - name: web
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
